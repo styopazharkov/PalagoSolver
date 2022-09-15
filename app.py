@@ -104,6 +104,8 @@ class Palago:
                 return {(neighbors_list[3-s],U),(neighbors_list[4-s],R)}
 
     def update_monsters_on_placement(self, spot, direction):
+        
+        #TIP HANDLING
         tip_attached_flag = {BLACK: False, WHITE: False}
         for color in [BLACK, WHITE]:
             for monster in self.monsters[color]:
@@ -115,6 +117,29 @@ class Palago:
                 monster = (0, openings)
                 self.monsters[color].append(monster)
                 
+        #BRIDGE HANDLING
+        bridge_attached_flag = {BLACK: False, WHITE: False}
+        non_directions = [U,R,L].remove(direction) # the two other directions
+        for color in [BLACK, WHITE]:
+            for monster in self.monsters[color]:
+                if((spot,non_directions[0]) in monster[OPENINGS] and (spot,non_directions[1]) in monster[OPENINGS]): # if bridge connects two of the same monster
+                    monster[OPENINGS].remove((spot,direction))
+                    bridge_attached_flag[color] = True
+                elif((spot,non_directions[0]) in monster[OPENINGS]): #if first direction is connected, but not both to the same monster
+                    monster[OPENINGS].remove((spot,direction))
+                    monster[OPENINGS] = monster[OPENINGS].union(self.get_two_openings_in_direction(color, spot, non_directions[1]))
+                elif((spot,non_directions[1]) in monster[OPENINGS]): #if second direction is connected, but not both to the same monster
+                    monster[OPENINGS].remove((spot,direction))
+                    monster[OPENINGS] = monster[OPENINGS].union(self.get_two_openings_in_direction(color, spot, non_directions[0]))
+                    
+                    
+                    
+            #TODO: handle the case when it connects two different monsters and when its normal
+                    
+            if(not bridge_attached_flag[color]): # a new tip is formed
+                openings = self.get_two_openings_in_direction(color, spot, direction)
+                monster = (0, openings)
+                self.monsters[color].append(monster)
         # TODO: handle the bridge case
                 
     def place_tile(self, spot, direction):
