@@ -1,6 +1,4 @@
 #CONSTANTS:
-
-
 BLACK, WHITE =  "black", "white" # colors
 A, B, C, D, E, F = 0, 1, 2, 3, 4, 5 # sectors
 ORIGIN = (0,0,0)
@@ -135,14 +133,15 @@ class Palago:
                     monster[SIZE] += 1
                     bridge_attached_flag[color] = True
                 elif((spot, non_directions[0]) in monster[OPENINGS] or (spot, non_directions[1]) in monster[OPENINGS]): #if one direction is connected, but not both to the same monster
-                    connected_direction, other_direction = (0,1) if (spot, non_directions[0]) in monster[OPENINGS] else (0,1)
+                    connected_direction, other_direction = (non_directions[0],non_directions[1]) if (spot, non_directions[0]) in monster[OPENINGS] else (non_directions[1],non_directions[0]) 
                     
-                    if(bridge_attached_flag): # bridge already attached to a different monster, so must merge. 
-                        other_monster = self.monsters.remove(attached_monster)
-                        monster["openings"] = monster["openings"].union(other_monster["openings"])
-                        monster["size"] += other_monster["size"]
+                    if(bridge_attached_flag[color]): # bridge already attached to a different monster, so must merge. 
+                        self.monsters[color].remove(attached_monster)
+                        monster["openings"] = monster["openings"].union(attached_monster["openings"])
+                        monster["size"] += attached_monster["size"]
                     else:
-                        monster[OPENINGS] = monster[OPENINGS].union(self.get_two_openings_in_direction(color, spot, other_direction))
+                        new_openings =  {opening for opening in self.get_two_openings_in_direction(color, spot, other_direction) if opening[OPENING_SPOT] not in self.occupied_spots}
+                        monster[OPENINGS] = monster[OPENINGS].union(new_openings)
                         monster[SIZE] += 1
                         attached_monster = monster
                         bridge_attached_flag[color] = True
@@ -169,7 +168,13 @@ class Palago:
         self.place_tile(spot2, direction2)
 
 
-
+class Node:
+    def __init__(self, to_move, state, parent):
+        self.state = state
+        self.to_move = to_move
+        self.winner = None
+        self.children = None
+        self.parent = parent
 
 
 # UI FUNCTIONS: 
@@ -194,6 +199,9 @@ def main():
     game = Palago()
     print_state(game)
     game.place_tile((B,1,1), L)
+    game.place_tile((C,1,1), U)
+    game.place_tile((C,2,2), L)
+    game.place_tile((D,1,1), U)
     print_state(game)
     
     
