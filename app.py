@@ -65,6 +65,11 @@ def is_won(color):
 
 def is_winnable_in_one_move(color):
     colored_monsters = monsters[color]
+    for monster in colored_monsters:
+        if len(monster[OPENINGS]) < 2:
+            return true
+        if len(monster[OPENINGS]) == 2:
+            return are_neighbors(monster[OPENINGS][0], monster[OPENINGS][1])
     return any(map(lambda monster: len(monster[OPENINGS])<=2,  monsters[color]))
 
 
