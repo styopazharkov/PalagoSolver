@@ -1,11 +1,13 @@
 #CONSTANTS:
+
+
 BLACK, WHITE =  "black", "white" # colors
 A, B, C, D, E, F = 0, 1, 2, 3, 4, 5 # sectors
 ORIGIN = (0,0,0)
 NUM_SECTORS = 6
 U, R, L = 0, 1, 2 # directions
 S,X,Y,Z = 0, 1, 2, 3 # coordinates
-SIZE, OPENINGS = 0, 1 # monster parts
+SIZE, OPENINGS = "size", "openings" # monster parts TODO: get rid of these two constants
 OPENING_SPOT, DIRECTION_OF_NEIGHBOR = 0, 1 #opening parts
 
 #GLOBAL VARIABLES:
@@ -17,19 +19,23 @@ class Palago:
         }
         # format is (size, openings). format of opening is (spot, direction of neighbor)--where the black tip is)
         self.monsters = {BLACK: [ #black starting monsters
-            (0,
+            {"size" : 0,
+            "openings" :
             {((A, 1, 1), L),  ((F, 1,1), R)}
-            ),   
-            (1,
+            },   
+            {"size" : 1,
+             "openings" :
             {((B, 1, 1), L),((C, 1, 1), U), ((D, 1, 1),U), ((E, 1, 1), R),}
-            ),  
+            },  
         ], WHITE:  [#white starting monsters
-            (1,
+            {"size" : 1,
+             "openings" :
             {((A, 1, 1), U), ((B, 1, 1), R), ((E, 1, 1),L), ((F, 1,1),U)}
-            ),   
-            (0,
+            },   
+            {"size" : 0,
+             "openings" :
             {((C, 1, 1), R), ((D, 1, 1), L)}
-            ),  
+            },  
         ]}
     # HELPER FUNCTIONS:
     def is_valid_spot(self, spot):
@@ -114,33 +120,41 @@ class Palago:
                     tip_attached_flag[color] = True
             if(not tip_attached_flag[color]): # a new tip is formed
                 openings = self.get_two_openings_in_direction(color, spot, direction)
-                monster = (0, openings)
+                monster = {"size": 0, "openings": openings}
                 self.monsters[color].append(monster)
                 
         #BRIDGE HANDLING
         bridge_attached_flag = {BLACK: False, WHITE: False}
-        non_directions = [U,R,L].remove(direction) # the two other directions
+        attached_monster = None
+        non_directions = [U,R,L]
+        non_directions.remove(direction) # the two other directions
         for color in [BLACK, WHITE]:
             for monster in self.monsters[color]:
-                if((spot,non_directions[0]) in monster[OPENINGS] and (spot,non_directions[1]) in monster[OPENINGS]): # if bridge connects two of the same monster
+                if((spot, non_directions[0]) in monster[OPENINGS] and (spot,non_directions[1]) in monster[OPENINGS]): # if bridge connects two of the same monster
                     monster[OPENINGS].remove((spot,direction))
+                    monster[SIZE] += 1
                     bridge_attached_flag[color] = True
-                elif((spot,non_directions[0]) in monster[OPENINGS]): #if first direction is connected, but not both to the same monster
-                    monster[OPENINGS].remove((spot,direction))
-                    monster[OPENINGS] = monster[OPENINGS].union(self.get_two_openings_in_direction(color, spot, non_directions[1]))
-                elif((spot,non_directions[1]) in monster[OPENINGS]): #if second direction is connected, but not both to the same monster
-                    monster[OPENINGS].remove((spot,direction))
-                    monster[OPENINGS] = monster[OPENINGS].union(self.get_two_openings_in_direction(color, spot, non_directions[0]))
+                elif((spot, non_directions[0]) in monster[OPENINGS] or (spot, non_directions[1]) in monster[OPENINGS]): #if one direction is connected, but not both to the same monster
+                    connected_direction, other_direction = (0,1) if (spot, non_directions[0]) in monster[OPENINGS] else (0,1)
+                    
+                    if(bridge_attached_flag): # bridge already attached to a different monster, so must merge. 
+                        other_monster = self.monsters.remove(attached_monster)
+                        monster["openings"] = monster["openings"].union(other_monster["openings"])
+                        monster["size"] += other_monster["size"]
+                    else:
+                        monster[OPENINGS] = monster[OPENINGS].union(self.get_two_openings_in_direction(color, spot, other_direction))
+                        monster[SIZE] += 1
+                        attached_monster = monster
+                        bridge_attached_flag[color] = True
+                    monster[OPENINGS].remove((spot,connected_direction))
                     
                     
-                    
-            #TODO: handle the case when it connects two different monsters and when its normal
+            #TODO: handle the case when it connects two different monsters 
                     
             if(not bridge_attached_flag[color]): # a new tip is formed
-                openings = self.get_two_openings_in_direction(color, spot, direction)
-                monster = (0, openings)
+                openings = self.get_two_openings_in_direction(color, spot, non_directions[0]).union(self.get_two_openings_in_direction(color, spot, non_directions[1]))
+                monster = {"size" : 1, "openings": openings}
                 self.monsters[color].append(monster)
-        # TODO: handle the bridge case
                 
     def place_tile(self, spot, direction):
         self.update_monsters_on_placement(spot, direction)
